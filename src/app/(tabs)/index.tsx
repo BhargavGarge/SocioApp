@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, FlatList } from "react-native";
-import posts from "~/assets/data/posts.json";
+import posts from "../../../assets/data/posts.json";
 
 import { useAuth } from "../../..//src/providers/AuthProvider";
 import { supabase } from "../../../lib/supabase";
@@ -20,10 +20,7 @@ export default function FeedScreen() {
     setLoading(true);
     let { data, error } = await supabase
       .from("posts")
-      .select("*, user:profiles(*), my_likes:likes(*), likes(count)")
-      // .eq('id', 49) // show only my posts
-      .eq("my_likes.user_id", user.id)
-      .order("created_at", { ascending: false });
+      .select("*,user:profiles(*)");
 
     if (error) {
       Alert.alert("Something went wrong");

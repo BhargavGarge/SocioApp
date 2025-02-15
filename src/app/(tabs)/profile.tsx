@@ -6,9 +6,10 @@ import { thumbnail } from "@cloudinary/url-gen/actions/resize";
 import { AdvancedImage } from "cloudinary-react-native";
 import Button from "../../components/Button";
 import { supabase } from "../../../lib/supabase";
-import CustomTextInput from "../../components/CustomTextInput ";
+
 import { cld, uploadImage } from "../../../lib/cloudinary";
 import { useAuth } from "../../providers/AuthProvider";
+import CustomTextInput from "../../components/CustomTextInput ";
 
 export default function ProfileScreen() {
   const [image, setImage] = useState<string | null>(null);
@@ -33,9 +34,12 @@ export default function ProfileScreen() {
       .single();
 
     if (error) {
+      console.error("Failed to fetch profile:", error);
       Alert.alert("Failed to fetch profile");
+      return;
     }
 
+    console.log("Fetched profile:", data);
     setUsername(data.username);
     setBio(data.bio);
     setRemoteImage(data.avatar_url);
@@ -47,32 +51,39 @@ export default function ProfileScreen() {
     }
 
     const updatedProfile: {
-      id: string;
       username: string;
       bio: string;
       avatar_url?: string;
     } = {
-      id: user.id,
       username,
       bio,
     };
 
     if (image) {
+      console.log("Uploading image...");
       const response = await uploadImage(image);
       updatedProfile.avatar_url = response.public_id;
+      console.log("Image uploaded with ID:", response.public_id);
     }
+
+    console.log("Updating profile with data:", updatedProfile);
 
     const { data, error } = await supabase
       .from("profiles")
-      .update(updatedProfile);
+      .update(updatedProfile)
+      .eq("id", user.id);
 
     if (error) {
+      console.error("Failed to update profile:", error);
       Alert.alert("Failed to update profile");
+      return;
     }
+
+    console.log("Profile updated successfully:", data);
+    Alert.alert("Profile updated successfully");
   };
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -105,7 +116,7 @@ export default function ProfileScreen() {
           className="w-52 aspect-square self-center rounded-full bg-slate-300"
         />
       ) : (
-        <View className="w-52 aspect-square  self-center rounded-full bg-slate-300" />
+        <View className="w-52 aspect-square self-center rounded-full bg-slate-300" />
       )}
       <Text
         onPress={pickImage}
