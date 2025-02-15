@@ -1,0 +1,50 @@
+[
+  {
+    "id": "1",
+    "image": "cld-sample",
+    "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/images/1.jpg",
+    "caption": "Exploring new places and creating memories! ✨",
+    "user": {
+      "id": "u1",
+      "avatar_url": "samples/people/boy-snow-hoodie",
+      "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/2.jpg",
+      "username": "adventure_seeker"
+    }
+  },
+  {
+    "id": "2",
+    "image": "samples/woman-on-a-football-field",
+    "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/images/2.jpg",
+    "caption": "Football is not just a game, it's an emotion. ⚽🔥",
+    "user": {
+      "id": "u1",
+      "avatar_url": "samples/people/smiling-man",
+      "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/2.jpg",
+      "username": "sports_lover"
+    }
+  },
+  {
+    "id": "3",
+    "image": "samples/dessert-on-a-plate",
+    "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/images/3.jpg",
+    "caption": "Dessert first, always! 🍰😍",
+    "user": {
+      "id": "u1",
+      "avatar_url": "samples/bike",
+      "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/3.jpg",
+      "username": "foodie_life"
+    }
+  },
+  {
+    "id": "4",
+    "image": "samples/balloons",
+    "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/images/4.jpg",
+    "caption": "Happiness is a bunch of colorful balloons! 🎈🎉",
+    "user": {
+      "id": "u1",
+      "avatar_url": "samples/animals/cat",
+      "image_url": "https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/4.jpg",
+      "username": "joyful_moments"
+    }
+  }
+]
