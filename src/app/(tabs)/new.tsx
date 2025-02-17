@@ -1,17 +1,29 @@
-import { View, Text, Image, TextInput } from "react-native";
-import React, { useEffect, useState } from "react";
-import Button from "../../components/Button";
+import { Text, View, Image, TextInput, StyleSheet, Button } from "react-native";
+import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
-import { MediaTypeOptions } from "expo-image-picker";
-import { uploadImage } from "../../../lib/cloudinary";
 import { router } from "expo-router";
-import { supabase } from "../../../lib/supabase";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useEvent } from "expo";
 import { useAuth } from "../../providers/AuthProvider";
+import { uploadImage } from "../../../lib/cloudinary";
+import { supabase } from "../../../lib/supabase";
+import CustomButton from "../../components/Button";
 
 export default function CreatePost() {
   const [caption, setCaption] = useState("");
   const [media, setMedia] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"video" | "image" | undefined>();
+
   const { session } = useAuth();
+
+  const player = useVideoPlayer(media || "", (player) => {
+    player.loop = true;
+    player.play();
+  });
+
+  const { isPlaying } = useEvent(player, "playingChange", {
+    isPlaying: player.playing,
+  });
 
   useEffect(() => {
     if (!media) {
@@ -21,7 +33,7 @@ export default function CreatePost() {
 
   const pickMedia = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: MediaTypeOptions.Images, // Only allow images
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.5,
@@ -29,13 +41,12 @@ export default function CreatePost() {
 
     if (!result.canceled) {
       setMedia(result.assets[0].uri);
+      setMediaType(result.assets[0].type as "video" | "image");
     }
   };
 
   const createPost = async () => {
-    if (!media) {
-      return;
-    }
+    if (!media) return;
     const response = await uploadImage(media);
     console.log("image id: ", response?.public_id);
 
@@ -46,6 +57,7 @@ export default function CreatePost() {
           caption,
           image: response?.public_id,
           user_id: session?.user.id,
+          media_type: mediaType,
         },
       ])
       .select();
@@ -54,34 +66,83 @@ export default function CreatePost() {
   };
 
   return (
-    <View className="p-3 items-center">
-      {/* Image Picker */}
+    <View style={styles.contentContainer}>
       {!media ? (
-        <View className="w-52 aspect-[3/4] rounded-lg bg-slate-300" />
+        <View style={styles.placeholder} />
+      ) : mediaType === "image" ? (
+        <Image source={{ uri: media }} style={styles.media} />
       ) : (
-        <Image
-          source={{ uri: media }}
-          className="w-52 aspect-[3/4] rounded-lg bg-slate-300"
+        <VideoView
+          player={player}
+          style={styles.media}
+          allowsFullscreen
+          allowsPictureInPicture
         />
       )}
 
-      {/* Caption Input */}
-      <Text className="text-blue-500 font-bold mt-5 " onPress={pickMedia}>
-        Select
+      <Text onPress={pickMedia} style={styles.changeText}>
+        Change
       </Text>
 
-      {/* Caption */}
       <TextInput
         value={caption}
         onChangeText={(newValue) => setCaption(newValue)}
         placeholder="What is on your mind"
-        className="w-full p-3"
+        style={styles.input}
       />
 
-      {/* Button */}
-      <View className="mt-auto w-full">
-        <Button title="Share" onPress={createPost} />
+      {mediaType === "video" && (
+        <View style={styles.controlsContainer}>
+          <Button
+            title={isPlaying ? "Pause" : "Play"}
+            onPress={() => {
+              isPlaying ? player.pause() : player.play();
+            }}
+          />
+        </View>
+      )}
+
+      <View style={styles.buttonContainer}>
+        <CustomButton title="Share" onPress={createPost} />
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  contentContainer: {
+    flex: 1,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 50,
+  },
+  placeholder: {
+    width: 210,
+    height: 280,
+    borderRadius: 10,
+    backgroundColor: "#cbd5e1",
+  },
+  media: {
+    width: 210,
+    height: 280,
+    borderRadius: 10,
+  },
+  changeText: {
+    color: "blue",
+    fontWeight: "bold",
+    marginVertical: 10,
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    borderBottomWidth: 1,
+  },
+  controlsContainer: {
+    marginVertical: 10,
+  },
+  buttonContainer: {
+    marginTop: "auto",
+    width: "100%",
+  },
+});

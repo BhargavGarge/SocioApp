@@ -1,0 +1,161 @@
+import { View, Text, Image, TextInput } from "react-native";
+import React, { useEffect, useState } from "react";
+import Button from "../../components/Button";
+import * as ImagePicker from "expo-image-picker";
+import { MediaTypeOptions } from "expo-image-picker";
+import { uploadImage } from "../../../lib/cloudinary";
+import { router } from "expo-router";
+import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../providers/AuthProvider";
+
+export default function CreatePost() {
+  const [caption, setCaption] = useState("");
+  const [media, setMedia] = useState<string | null>(null);
+  const { session } = useAuth();
+
+  useEffect(() => {
+    if (!media) {
+      pickMedia();
+    }
+  }, [media]);
+
+  const pickMedia = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: MediaTypeOptions.Images, // Only allow images
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setMedia(result.assets[0].uri);
+    }
+  };
+
+  const createPost = async () => {
+    if (!media) {
+      return;
+    }
+    const response = await uploadImage(media);
+    console.log("image id: ", response?.public_id);
+
+    const { data, error } = await supabase
+      .from("posts")
+      .insert([
+        {
+          caption,
+          image: response?.public_id,
+          user_id: session?.user.id,
+        },
+      ])
+      .select();
+
+    router.push("/(tabs)");
+  };
+
+  return (
+    <View className="p-3 items-center">
+      {/* Image Picker */}
+      {!media ? (
+        <View className="w-52 aspect-[3/4] rounded-lg bg-slate-300" />
+      ) : (
+        <Image
+          source={{ uri: media }}
+          className="w-52 aspect-[3/4] rounded-lg bg-slate-300"
+        />
+      )}
+
+      {/* Caption Input */}
+      <Text className="text-blue-500 font-bold mt-5 " onPress={pickMedia}>
+        Select
+      </Text>
+
+      {/* Caption */}
+      <TextInput
+        value={caption}
+        onChangeText={(newValue) => setCaption(newValue)}
+        placeholder="What is on your mind"
+        className="w-full p-3"
+      />
+
+      {/* Button */}
+      <View className="mt-auto w-full">
+        <Button title="Share" onPress={createPost} />
+      </View>
+    </View>
+  );
+}
+
+
+import { View, Text, Image, useWindowDimensions } from "react-native";
+import React, { useState } from "react";
+import posts from "../../assets/data/posts.json";
+import { AdvancedImage, AdvancedVideo } from "cloudinary-react-native";
+import { Cloudinary } from "@cloudinary/url-gen";
+import { thumbnail } from "@cloudinary/url-gen/actions/resize";
+import { byRadius } from "@cloudinary/url-gen/actions/roundCorners";
+import { focusOn } from "@cloudinary/url-gen/qualifiers/gravity";
+import { FocusOn } from "@cloudinary/url-gen/qualifiers/focusOn";
+import { Ionicons, Feather, AntDesign } from "@expo/vector-icons";
+import { cld } from "../../lib/cloudinary";
+import PostContent from "./PostContent";
+
+interface Post {
+  media_type: string;
+  image: string;
+  user: {
+    avatar_url: string;
+    username: string;
+  };
+  caption: string;
+}
+
+export default function PostListItem({ post }: { post: Post }) {
+  const image = cld.image(post.image);
+  const { width } = useWindowDimensions();
+
+  const [isLiked, setIsLiked] = useState(false);
+  image.resize(thumbnail().width(width).height(width)); // Crop the image, focusing on the face.
+  const avatar = cld.image(post.user.avatar_url || "user");
+  avatar.resize(
+    thumbnail().width(48).height(48).gravity(focusOn(FocusOn.face()))
+  );
+  const video = cld.video(post.image);
+
+  return (
+    <View className="bg-white">
+      {/* header */}
+      <View className="p-2 flex-row items-center gap-2">
+        <AdvancedImage
+          cldImg={avatar}
+          className="w-12 aspect-square rounded-full"
+        />
+        <Text className="font-semibold ">
+          {post.user.username || "New user"}
+        </Text>
+      </View>
+      <PostContent post={post} />
+      {/* icons */}
+      <View className="flex-row gap-3 p-3">
+        <AntDesign
+          onPress={() => setIsLiked(!isLiked)}
+          name={isLiked ? "heart" : "hearto"}
+          size={20}
+          color={isLiked ? "crimson" : "black"}
+        />
+        <Ionicons name="chatbubble-outline" size={20} />
+        <Feather name="send" size={20} />
+
+        <Feather name="bookmark" size={20} className="ml-auto" />
+      </View>
+      <View className="px-3 gap-1">
+        <Text>
+          <Text className="font-semibold">
+            {post.user.username || "New user"}
+          </Text>
+          {post.caption}
+        </Text>
+      </View>
+    </View>
+  );
+}
