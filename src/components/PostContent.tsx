@@ -23,7 +23,7 @@ export default function PostContent({ post }: { post: Post }) {
     const video = cld.video(post.image);
     video.resize(scale().width(400));
     const player = useVideoPlayer(video.toURL(), (player) => {
-      player.play();
+      player.pause();
     });
 
     return (

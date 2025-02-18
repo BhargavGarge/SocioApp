@@ -1,4 +1,12 @@
-import { Text, View, Image, TextInput, StyleSheet, Button } from "react-native";
+import {
+  Text,
+  View,
+  Image,
+  TextInput,
+  StyleSheet,
+  Button,
+  ActivityIndicator,
+} from "react-native";
 import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -7,18 +15,20 @@ import { useEvent } from "expo";
 import { useAuth } from "../../providers/AuthProvider";
 import { uploadImage } from "../../../lib/cloudinary";
 import { supabase } from "../../../lib/supabase";
-import CustomButton from "../../components/Button";
+import { useFeed } from "../../../FeedContext";
 
 export default function CreatePost() {
+  const { setNewPost } = useFeed(); // use context to update feed
   const [caption, setCaption] = useState("");
   const [media, setMedia] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"video" | "image" | undefined>();
+  const [loading, setLoading] = useState(false); // Loading state added
 
   const { session } = useAuth();
 
   const player = useVideoPlayer(media || "", (player) => {
     player.loop = true;
-    player.play();
+    // Do not start playing automatically, remove the player.play() here
   });
 
   const { isPlaying } = useEvent(player, "playingChange", {
@@ -47,22 +57,32 @@ export default function CreatePost() {
 
   const createPost = async () => {
     if (!media) return;
-    const response = await uploadImage(media);
-    console.log("image id: ", response?.public_id);
 
-    const { data, error } = await supabase
-      .from("posts")
-      .insert([
-        {
-          caption,
-          image: response?.public_id,
-          user_id: session?.user.id,
-          media_type: mediaType,
-        },
-      ])
-      .select();
+    setLoading(true); // Start loading
 
-    router.push("/(tabs)");
+    try {
+      const response = await uploadImage(media);
+      console.log("image id: ", response?.public_id);
+
+      const { data, error } = await supabase
+        .from("posts")
+        .insert([
+          {
+            caption,
+            image: response?.public_id,
+            user_id: session?.user.id,
+            media_type: mediaType,
+          },
+        ])
+        .select();
+
+      setLoading(false); // Stop loading
+      setNewPost(data);
+      router.push("/(tabs)"); // Navigate to tabs
+    } catch (error) {
+      console.error("Error creating post:", error);
+      setLoading(false); // Stop loading in case of an error
+    }
   };
 
   return (
@@ -103,7 +123,11 @@ export default function CreatePost() {
       )}
 
       <View style={styles.buttonContainer}>
-        <CustomButton title="Share" onPress={createPost} />
+        {loading ? (
+          <ActivityIndicator size="large" color="blue" />
+        ) : (
+          <Button title="Share" onPress={createPost} disabled={loading} />
+        )}
       </View>
     </View>
   );
@@ -144,5 +168,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginTop: "auto",
     width: "100%",
+    alignItems: "center",
   },
 });
